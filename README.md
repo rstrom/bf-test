@@ -4,15 +4,12 @@ Exported from Moneta Studio.
 
 ## Quick Deploy
 
-### GitHub Pages
-1. Push to GitHub - the **Test Build** workflow runs automatically to verify everything works
-2. **Enable Pages**: Go to Settings → Pages → Source: **GitHub Actions** (not Deploy from branch)  
-3. Push again - the **Deploy to GitHub Pages** workflow will now deploy your site
-4. Visit your site at `https://username.github.io/repository-name`
+### GitHub Pages (2 clicks!)
+1. **Push to GitHub** 
+2. **[Click here to enable Pages](../../settings/pages)** → Set Source to "GitHub Actions"
+3. **Done!** Your site will be live at `https://YOUR-USERNAME.github.io/server-rewrite-test`
 
-**Two workflows included:**
-- `.github/workflows/test.yml` - Tests the build process
-- `.github/workflows/pages.yml` - Deploys to GitHub Pages
+**That's it!** The GitHub Action builds your site automatically using Butterfly.
 
 ### Cloudflare Workers  
 1. Get API token from Cloudflare dashboard
@@ -64,17 +61,6 @@ This export includes a 404.html fallback that enables custom routes beyond stand
 
 ## Troubleshooting
 
-### GitHub Pages Setup Issues
-If you see "Get Pages site failed" error:
-
-1. **Go to Repository Settings → Pages**
-2. **Set Source to "GitHub Actions"** (not "Deploy from a branch")  
-3. **Re-run the workflow** - it should work after this setup
-
-### Custom Domain (Optional)
-To use a custom domain, add a `CNAME` file with your domain:
-```bash
-echo "yourdomain.com" > CNAME
-```
+**Build failing?** [Click here](../../settings/pages) → Set Source to "GitHub Actions" (not "Deploy from a branch")
 
 Learn more about [Butterfly](https://github.com/moneta-studio/moneta/tree/main/packages/butterfly).

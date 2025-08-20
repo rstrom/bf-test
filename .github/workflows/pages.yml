@@ -38,9 +38,16 @@ jobs:
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
-        with:
-          # Enable Pages if not already enabled
-          enablement: true
+        continue-on-error: true
+        id: configure-pages
+
+      - name: Show Pages Setup Instructions
+        if: steps.configure-pages.outcome == 'failure'
+        run: |
+          echo "❌ GitHub Pages not enabled yet!"
+          echo "👆 Click here to enable: ${{ github.server_url }}/${{ github.repository }}/settings/pages"
+          echo "📋 Set Source to 'GitHub Actions' then re-run this workflow"
+          exit 1
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
