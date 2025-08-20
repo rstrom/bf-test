@@ -33,12 +33,12 @@ jobs:
       - name: Validate SSG compatibility
         run: |
           echo "🔍 Running validation..."
-          bun ./butterfly-cli/index.ts validate || {
+          bun ./butterfly-cli/cli/index.ts validate || {
             echo "❌ Validation failed"
             echo "📋 Checking butterfly-cli structure:"
             ls -la butterfly-cli/
-            echo "📋 Checking if index.ts exists:"
-            cat butterfly-cli/index.ts | head -10
+            echo "📋 Checking if cli/index.ts exists:"
+            cat butterfly-cli/cli/index.ts | head -10
             exit 1
           }
 
@@ -56,8 +56,8 @@ jobs:
             echo "❌ no assets directory found"
           fi
           echo "🚀 Running build command..."
-          echo "Command: bun ./butterfly-cli/index.ts build --source assets --output dist --verbose"
-          bun ./butterfly-cli/index.ts build --source assets --output dist --verbose 2>&1
+          echo "Command: bun ./butterfly-cli/cli/index.ts build --source assets --output dist --verbose"
+          bun ./butterfly-cli/cli/index.ts build --source assets --output dist --verbose 2>&1
           BUILD_EXIT=$?
           echo "Build exit code: $BUILD_EXIT"
           if [ $BUILD_EXIT -ne 0 ]; then
@@ -70,10 +70,10 @@ jobs:
             echo "📂 Let's try running a simpler command first:"
             bun --version
             echo "📂 Let's try the validate command:"
-            bun ./butterfly-cli/index.ts validate --source assets || echo "Validate also failed"
+            bun ./butterfly-cli/cli/index.ts validate --source assets || echo "Validate also failed"
             echo "📂 Let's check if the CLI file is executable:"
-            file ./butterfly-cli/index.ts
-            head -5 ./butterfly-cli/index.ts
+            file ./butterfly-cli/cli/index.ts
+            head -5 ./butterfly-cli/cli/index.ts
             exit 1
           fi
 

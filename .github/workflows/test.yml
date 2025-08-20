@@ -22,10 +22,10 @@ jobs:
         run: bun install
 
       - name: Validate SSG compatibility
-        run: bun ./butterfly-cli/index.ts validate
+        run: bun ./butterfly-cli/cli/index.ts validate
 
       - name: Test build
-        run: bun ./butterfly-cli/index.ts build --output dist
+        run: bun ./butterfly-cli/cli/index.ts build --output dist
 
       - name: List generated files
         run: ls -la dist/

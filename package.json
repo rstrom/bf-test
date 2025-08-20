@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "description": "Moneta application: server-rewrite-test",
   "scripts": {
-    "build": "bun ./butterfly-cli/index.ts build",
-    "serve": "bun ./butterfly-cli/index.ts serve",
-    "validate": "bun ./butterfly-cli/index.ts validate",
+    "build": "bun ./butterfly-cli/cli/index.ts build",
+    "serve": "bun ./butterfly-cli/cli/index.ts serve",
+    "validate": "bun ./butterfly-cli/cli/index.ts validate",
     "deploy:workers": "wrangler deploy"
   },
   "dependencies": {

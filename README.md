@@ -23,7 +23,7 @@ bun run serve
 
 Run TypeScript directly:
 ```bash
-bun ./butterfly-cli/index.ts serve
+bun ./butterfly-cli/cli/index.ts serve
 ```
 
 ## Commands
