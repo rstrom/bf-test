@@ -28,9 +28,21 @@ npm run serve
 
 - `/.moneta/sitemap.xml` - Routing configuration  
 - `/assets/` - Static assets (HTML, CSS, JS, images)
-- `/butterfly-cli/` - Bundled Butterfly CLI (no npm install needed)
+- `/butterfly-cli/` - **Editable TypeScript source** for Butterfly CLI
+- `/tsconfig.json` - TypeScript configuration
 - `/src/worker.js` - Cloudflare Worker entry point
 - `/404.html` - GitHub Pages fallback for custom routes
+
+## Customization
+
+The Butterfly CLI is included as **editable TypeScript source code** - not compiled JavaScript. You can:
+
+- Modify routing logic in `butterfly-cli/services/sitemap-router.ts`
+- Customize build process in `butterfly-cli/cli/commands/build.ts`
+- Add new CLI commands in `butterfly-cli/cli/index.ts`
+- Extend sitemap parsing in `butterfly-cli/parsers/sitemap-parser.ts`
+
+All changes take effect immediately using [tsx](https://github.com/privatenumber/tsx) for TypeScript execution.
 
 ## GitHub Pages Custom Routes
 

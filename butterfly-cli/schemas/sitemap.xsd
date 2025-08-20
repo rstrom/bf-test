@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:map="http://moneta.sh/sitemap/1.0"
+           targetNamespace="http://moneta.sh/sitemap/1.0"
+           elementFormDefault="qualified">
+
+  <xs:annotation>
+    <xs:documentation>
+      Butterfly Sitemap Schema
+      
+      This schema defines the structure for Butterfly sitemap configuration files.
+      Sitemaps control how requests are routed to assets in web applications.
+      
+      Version: 1.0
+      Namespace: http://moneta.sh/sitemap/1.0
+    </xs:documentation>
+  </xs:annotation>
+
+  <!-- Root sitemap element -->
+  <xs:element name="sitemap">
+    <xs:annotation>
+      <xs:documentation>
+        Root element of a Butterfly sitemap configuration.
+        Contains pipeline definitions for request routing.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="map:pipelines" minOccurs="1" maxOccurs="1"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Pipelines container -->
+  <xs:element name="pipelines">
+    <xs:annotation>
+      <xs:documentation>
+        Container for pipeline definitions. Each pipeline contains a sequence
+        of pattern matches that are evaluated in order.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="map:pipeline" minOccurs="1" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Individual pipeline -->
+  <xs:element name="pipeline">
+    <xs:annotation>
+      <xs:documentation>
+        A pipeline contains a sequence of pattern matches. The first matching
+        pattern in the pipeline is used to serve the request.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="map:match" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Pattern match element -->
+  <xs:element name="match">
+    <xs:annotation>
+      <xs:documentation>
+        Defines a pattern to match against request paths and the action to take
+        when the pattern matches. Patterns support wildcards:
+        - ** matches any number of path segments
+        - * matches within a single path segment
+        - {0}, {1}, etc. reference capture groups in actions
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:choice minOccurs="1" maxOccurs="1">
+        <xs:element ref="map:read"/>
+        <xs:element ref="map:generate"/>
+        <xs:element ref="map:transform"/>
+      </xs:choice>
+      <xs:attribute name="pattern" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>
+            Pattern to match against request paths. Supports glob-style wildcards:
+            - "**" matches any number of path segments
+            - "*" matches within a single path segment
+            - "**.*" matches any file with extension
+            - "" matches root path
+            
+            Examples:
+            - "api/**" matches all paths starting with /api/
+            - "**.mp4" matches all .mp4 files
+            - "**/index" matches index in any directory
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Read action - serves static assets -->
+  <xs:element name="read">
+    <xs:annotation>
+      <xs:documentation>
+        Action to read and serve a static asset. The src attribute specifies
+        the asset path, which can include pattern capture group references.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="src" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>
+            Path to the asset to serve. Can include capture group references:
+            - {0} references the entire matched pattern
+            - {1} references the first capture group
+            - {2} references the second capture group, etc.
+            
+            Examples:
+            - "index.html" serves a static file
+            - "{1}/index.html" serves index.html from captured directory
+            - "{0}" serves the file at the exact matched path
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="rangeSupport" type="xs:boolean" use="optional" default="false">
+        <xs:annotation>
+          <xs:documentation>
+            Whether to enable HTTP range request support for this asset.
+            Useful for video files and large assets that benefit from
+            partial content delivery. Defaults to false.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Generate action - dynamically creates content -->
+  <xs:element name="generate">
+    <xs:annotation>
+      <xs:documentation>
+        Action to generate content dynamically using a specified generator.
+        Generators are pluggable components that create content at request time.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="generator" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>
+            Name or identifier of the generator to use for creating content.
+            The specific generators available depend on the Butterfly
+            implementation and configured plugins.
+            
+            Examples:
+            - "markdown" for Markdown to HTML conversion
+            - "api-docs" for API documentation generation
+            - "sitemap" for XML sitemap generation
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Transform action - processes content through transformations -->
+  <xs:element name="transform">
+    <xs:annotation>
+      <xs:documentation>
+        Action to transform content from a source asset through a specified
+        transformer. Useful for content pipelines like Markdown processing,
+        template rendering, or format conversion.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType>
+      <xs:attribute name="src" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>
+            Path to the source asset to transform. Can include capture group
+            references like the read action's src attribute.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+      <xs:attribute name="transformer" type="xs:string" use="required">
+        <xs:annotation>
+          <xs:documentation>
+            Name or identifier of the transformer to apply to the source content.
+            The specific transformers available depend on the Butterfly
+            implementation and configured plugins.
+            
+            Examples:
+            - "markdown-html" for Markdown to HTML transformation
+            - "handlebars" for Handlebars template processing
+            - "xslt" for XML transformation
+          </xs:documentation>
+        </xs:annotation>
+      </xs:attribute>
+    </xs:complexType>
+  </xs:element>
+
+</xs:schema>
