@@ -143,11 +143,33 @@ function discoverAllFiles(sourceDir: string): Effect.Effect<string[], Error> {
     try: async () => {
       const files: string[] = [];
       
+      // Directories to skip during validation scanning
+      const skipDirectories = new Set([
+        'node_modules',
+        '.git', 
+        'dist',
+        'build',
+        '.butterfly',
+        '.next',
+        '.nuxt',
+        'coverage',
+        '.nyc_output',
+        'tmp',
+        'temp',
+        '.cache',
+        '.vscode',
+        '.idea'
+      ]);
+      
       async function walkDir(dir: string, basePath = "") {
         const entries = await fs.promises.readdir(dir, { withFileTypes: true });
         
         for (const entry of entries) {
-          if (entry.name.startsWith(".")) continue;
+          // Skip hidden files and directories (starting with .)
+          if (entry.name.startsWith(".") && !entry.name.startsWith(".moneta")) continue;
+          
+          // Skip known build/dependency directories
+          if (skipDirectories.has(entry.name)) continue;
           
           const fullPath = path.join(dir, entry.name);
           const relativePath = basePath ? path.join(basePath, entry.name) : entry.name;
