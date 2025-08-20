@@ -33,7 +33,7 @@ jobs:
       - name: Validate SSG compatibility
         run: |
           echo "🔍 Running validation..."
-          bun ./butterfly-cli/cli/index.ts validate || {
+          bun ./butterfly-cli/cli/index.ts validate --source assets || {
             echo "❌ Validation failed"
             echo "📋 Checking butterfly-cli structure:"
             ls -la butterfly-cli/
