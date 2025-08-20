@@ -1,0 +1,16 @@
+{
+  "name": "server-rewrite-test",
+  "version": "1.0.0",
+  "description": "Moneta application: server-rewrite-test",
+  "scripts": {
+    "build": "node ./butterfly-cli/index.mjs build",
+    "serve": "node ./butterfly-cli/index.mjs serve",
+    "validate": "node ./butterfly-cli/index.mjs validate",
+    "deploy:workers": "wrangler deploy"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "wrangler": "^3.0.0",
+    "tsx": "^4.19.4"
+  }
+}

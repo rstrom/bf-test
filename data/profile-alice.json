@@ -1,0 +1,9 @@
+{
+  "username": "alice",
+  "name": "Alice Chen",
+  "title": "Senior Developer",
+  "bio": "Full-stack developer with 8 years experience in React and Node.js",
+  "skills": ["JavaScript", "React", "Node.js", "PostgreSQL"],
+  "projects": 12,
+  "joined": "2021-03-15"
+}
