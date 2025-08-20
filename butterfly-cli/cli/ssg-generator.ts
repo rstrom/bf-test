@@ -81,6 +81,11 @@ export class SSGGenerator {
       
       if (verbose) {
         console.log(`📁 Found ${allAssets.length} assets to process`);
+        if (allAssets.length > 0) {
+          allAssets.forEach(asset => console.log(`  /${asset}`));
+        } else {
+          console.log(`❌ No assets found in ${sourceDir}`);
+        }
       }
 
       // Generate routes by testing each asset against sitemap patterns
