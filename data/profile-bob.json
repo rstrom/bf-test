@@ -1,9 +1,0 @@
-{
-  "username": "bob",
-  "name": "Bob Martinez",
-  "title": "UI/UX Designer", 
-  "bio": "Creative designer passionate about user-centered design and accessibility",
-  "skills": ["Figma", "Adobe Creative Suite", "Design Systems", "User Research"],
-  "projects": 8,
-  "joined": "2022-01-10"
-}

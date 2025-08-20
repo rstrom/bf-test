@@ -25,7 +25,7 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
 
     if (!sourceExists) {
       yield* Console.error(`❌ Source directory not found: ${config.source}`);
-      yield* Effect.fail(new Error("Source directory not found"));
+      yield* Effect.sync(() => process.exit(1));
     }
 
     // Check for sitemap.xml
@@ -51,7 +51,7 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
         yield* Console.error(`🐛 Debug: Build failed with error: ${error}`);
         yield* Console.error(`Error type: ${typeof error}`);
         yield* Console.error(`Error message: ${error?.message || 'No message'}`);
-        return yield* Effect.fail(error);
+        yield* Effect.sync(() => process.exit(1));
       }))
     );
 
@@ -71,7 +71,7 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
           yield* Console.error(`   ${error}`);
         }
       }
-      yield* Effect.fail(new Error("Build failed"));
+      yield* Effect.sync(() => process.exit(1));
     }
   })
 );

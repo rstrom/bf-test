@@ -52,4 +52,14 @@ const cli = Command.run(butterfly, {
   version: "v0.1.0",
 });
 
-cli(process.argv).pipe(Effect.provide(NodeContext.layer), NodeRuntime.runMain);
+cli(process.argv).pipe(
+  Effect.provide(NodeContext.layer), 
+  Effect.catchAll((error) => {
+    console.error(`❌ CLI Error: ${error}`);
+    console.error(`Error type: ${typeof error}`);
+    console.error(`Error message: ${error?.message || 'No message'}`);
+    console.error(`Stack trace: ${error?.stack || 'No stack'}`);
+    return Effect.sync(() => process.exit(1));
+  }),
+  NodeRuntime.runMain
+);

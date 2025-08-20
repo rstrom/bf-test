@@ -22,7 +22,7 @@ export const validateCommand = Effect.fn("validateCommand")((config: ValidateCon
 
     if (!sourceExists) {
       yield* Console.error(`❌ Source directory not found: ${config.source}`);
-      yield* Effect.fail(new Error("Source directory not found"));
+      yield* Effect.sync(() => process.exit(1));
     }
 
     const result = yield* SSGValidator.validate({
@@ -33,7 +33,7 @@ export const validateCommand = Effect.fn("validateCommand")((config: ValidateCon
         yield* Console.error(`Error type: ${typeof error}`);
         yield* Console.error(`Error message: ${error?.message || 'No message'}`);
         yield* Console.error(`Stack trace: ${error?.stack || 'No stack'}`);
-        return yield* Effect.fail(error);
+        yield* Effect.sync(() => process.exit(1));
       }))
     );
 
@@ -58,7 +58,7 @@ export const validateCommand = Effect.fn("validateCommand")((config: ValidateCon
       yield* Console.log("• Remove real-time endpoints");
       yield* Console.log("• Use only static assets and client-side logic");
       
-      yield* Effect.fail(new Error("Application is not SSG compatible"));
+      yield* Effect.sync(() => process.exit(1));
     }
   })
 );

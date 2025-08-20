@@ -56,15 +56,26 @@ jobs:
             echo "❌ no assets directory found"
           fi
           echo "🚀 Running build command..."
-          bun ./butterfly-cli/index.ts build --source assets --output dist --verbose 2>&1 || {
-            echo "❌ Build command failed with exit code: $?"
-            echo "📋 Let's check what went wrong..."
+          echo "Command: bun ./butterfly-cli/index.ts build --source assets --output dist --verbose"
+          bun ./butterfly-cli/index.ts build --source assets --output dist --verbose 2>&1
+          BUILD_EXIT=$?
+          echo "Build exit code: $BUILD_EXIT"
+          if [ $BUILD_EXIT -ne 0 ]; then
+            echo "❌ Build command failed with exit code: $BUILD_EXIT"
+            echo "📋 Let's debug this..."
             echo "📂 butterfly-cli contents:"
             ls -la butterfly-cli/
             echo "📂 assets contents:"
             ls -la assets/ 2>/dev/null || echo "No assets directory"
+            echo "📂 Let's try running a simpler command first:"
+            bun --version
+            echo "📂 Let's try the validate command:"
+            bun ./butterfly-cli/index.ts validate --source assets || echo "Validate also failed"
+            echo "📂 Let's check if the CLI file is executable:"
+            file ./butterfly-cli/index.ts
+            head -5 ./butterfly-cli/index.ts
             exit 1
-          }
+          fi
 
       - name: Verify build output
         run: |
