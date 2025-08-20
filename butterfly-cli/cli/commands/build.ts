@@ -50,12 +50,15 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
       Effect.catchAll((error) => Effect.gen(function* () {
         yield* Console.error(`🐛 Debug: Build failed with error: ${error}`);
         yield* Console.error(`Error type: ${typeof error}`);
-        yield* Console.error(`Error message: ${error?.message || 'No message'}`);
+        const errorMessage = typeof error === 'object' && error && 'message' in error 
+          ? (error as Error).message 
+          : String(error);
+        yield* Console.error(`Error message: ${errorMessage}`);
         yield* Effect.sync(() => process.exit(1));
       }))
     );
 
-    if (result.success) {
+    if (result && result.success) {
       yield* Console.log("✅ Build completed successfully");
       yield* Console.log(`   Generated ${result.generatedFiles} files`);
       if (result.routes && result.routes.length > 0) {
@@ -66,7 +69,7 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
       }
     } else {
       yield* Console.error("❌ Build failed");
-      if (result.errors) {
+      if (result && result.errors) {
         for (const error of result.errors) {
           yield* Console.error(`   ${error}`);
         }

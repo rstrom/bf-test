@@ -31,13 +31,19 @@ export const validateCommand = Effect.fn("validateCommand")((config: ValidateCon
       Effect.catchAll((error) => Effect.gen(function* () {
         yield* Console.error(`🐛 Debug: Validation failed with error: ${error}`);
         yield* Console.error(`Error type: ${typeof error}`);
-        yield* Console.error(`Error message: ${error?.message || 'No message'}`);
-        yield* Console.error(`Stack trace: ${error?.stack || 'No stack'}`);
+        const errorMessage = typeof error === 'object' && error && 'message' in error 
+          ? (error as Error).message 
+          : String(error);
+        const errorStack = typeof error === 'object' && error && 'stack' in error 
+          ? (error as Error).stack 
+          : 'No stack';
+        yield* Console.error(`Error message: ${errorMessage}`);
+        yield* Console.error(`Stack trace: ${errorStack}`);
         yield* Effect.sync(() => process.exit(1));
       }))
     );
 
-    if (result.isSSGCompatible) {
+    if (result && result.isSSGCompatible) {
       yield* Console.log("✅ Application is compatible with Static Site Generation");
       if (result.warnings && result.warnings.length > 0) {
         yield* Console.log("⚠️  Warnings:");
@@ -48,8 +54,10 @@ export const validateCommand = Effect.fn("validateCommand")((config: ValidateCon
     } else {
       yield* Console.error("❌ Application is NOT compatible with Static Site Generation");
       yield* Console.error("Issues found:");
-      for (const error of result.errors) {
-        yield* Console.error(`   ${error}`);
+      if (result && result.errors) {
+        for (const error of result.errors) {
+          yield* Console.error(`   ${error}`);
+        }
       }
       
       yield* Console.log("\nTo make your application SSG-compatible:");

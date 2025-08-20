@@ -54,6 +54,16 @@ export class SSGValidator {
           // Check for dynamic features in sitemap
           const dynamicPatterns = checkForDynamicPatterns(sitemapContent);
           errors.push(...dynamicPatterns);
+          
+          // Check if wildcard patterns can be resolved
+          const wildcardResolution = yield* checkWildcardResolution(sitemapContent, sourceDir).pipe(
+            Effect.catchAll((error) => {
+              errors.push(`Wildcard resolution failed: ${error.message}`);
+              return Effect.succeed({ errors: [], warnings: [] });
+            })
+          );
+          errors.push(...wildcardResolution.errors);
+          warnings.push(...wildcardResolution.warnings);
         }
       } else {
         warnings.push("No sitemap.xml found - will use default routing rules");
@@ -244,4 +254,137 @@ function checkForDynamicDependencies(pkg: any): string[] {
   }
   
   return warnings;
+}
+
+function checkWildcardResolution(
+  sitemapContent: string, 
+  sourceDir: string
+): Effect.Effect<{ errors: string[]; warnings: string[] }, Error> {
+  return Effect.gen(function* () {
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    
+    // Parse sitemap to extract patterns
+    const patterns = extractSitemapPatterns(sitemapContent);
+    
+    for (const pattern of patterns) {
+      const resolution = yield* resolvePattern(pattern, sourceDir).pipe(
+        Effect.catchAll((error) => {
+          errors.push(`Cannot resolve pattern '${pattern}': ${error.message}`);
+          return Effect.succeed([]);
+        })
+      );
+      
+      if (resolution.length === 0) {
+        if (pattern.includes('{') || pattern.includes('*')) {
+          errors.push(`Wildcard pattern '${pattern}' matches no files`);
+        }
+      } else {
+        warnings.push(`Pattern '${pattern}' resolves to ${resolution.length} routes: ${resolution.slice(0, 3).join(', ')}${resolution.length > 3 ? '...' : ''}`);
+      }
+    }
+    
+    return { errors, warnings };
+  });
+}
+
+function extractSitemapPatterns(sitemapContent: string): string[] {
+  const patterns: string[] = [];
+  
+  // Extract src attributes from map:read elements
+  const srcMatches = sitemapContent.match(/src="([^"]+)"/g) || [];
+  for (const match of srcMatches) {
+    const src = match.match(/src="([^"]+)"/)?.[1];
+    if (src) {
+      patterns.push(src);
+    }
+  }
+  
+  return patterns;
+}
+
+function resolvePattern(
+  pattern: string, 
+  sourceDir: string
+): Effect.Effect<string[], Error> {
+  return Effect.gen(function* () {
+    // If pattern has no wildcards, check if file exists
+    if (!pattern.includes('{') && !pattern.includes('*')) {
+      const fullPath = path.join(sourceDir, pattern);
+      const exists = yield* Effect.tryPromise({
+        try: () => fs.promises.access(fullPath).then(() => true),
+        catch: (error) => new Error(`Cannot access file: ${error}`),
+      }).pipe(
+        Effect.catchAll(() => Effect.succeed(false))
+      );
+      return exists ? [pattern] : [];
+    }
+    
+    // Handle wildcard patterns like "data/profile-{1}.json"
+    const routes: string[] = [];
+    
+    if (pattern.includes('{1}')) {
+      // Convert pattern to glob: "data/profile-{1}.json" → "data/profile-*.json"
+      const globPattern = pattern.replace(/\{1\}/g, '*');
+      const matchingFiles = yield* findMatchingFiles(sourceDir, globPattern);
+      
+      // Extract wildcard values from filenames
+      const regex = createPatternRegex(pattern);
+      for (const file of matchingFiles) {
+        const match = file.match(regex);
+        if (match && match[1]) {
+          routes.push(match[1]);
+        }
+      }
+    }
+    
+    return routes;
+  });
+}
+
+function findMatchingFiles(
+  sourceDir: string, 
+  globPattern: string
+): Effect.Effect<string[], Error> {
+  return Effect.tryPromise({
+    try: async () => {
+      const files: string[] = [];
+      const [dirPattern, filePattern] = globPattern.split('/').reduce((acc, part, index, arr) => {
+        if (part.includes('*')) {
+          return [arr.slice(0, index).join('/'), part];
+        }
+        return acc;
+      }, ['', '']);
+      
+      const searchDir = path.join(sourceDir, dirPattern || '');
+      
+      try {
+        const entries = await fs.promises.readdir(searchDir, { withFileTypes: true });
+        
+        // Simple glob matching for patterns like "profile-*.json"
+        const regexPattern = filePattern.replace(/\*/g, '(.+)');
+        const regex = new RegExp(`^${regexPattern}$`);
+        
+        for (const entry of entries) {
+          if (entry.isFile() && regex.test(entry.name)) {
+            files.push(path.join(dirPattern, entry.name));
+          }
+        }
+      } catch {
+        // Directory doesn't exist, return empty array
+      }
+      
+      return files;
+    },
+    catch: (error) => new Error(`Failed to find matching files for ${globPattern}: ${error}`),
+  });
+}
+
+function createPatternRegex(pattern: string): RegExp {
+  // Convert "data/profile-{1}.json" to regex that captures the wildcard value
+  const escapedPattern = pattern
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')  // Escape special regex chars
+    .replace(/\\\{1\\\}/g, '(.+)');          // Replace {1} with capture group
+  
+  return new RegExp(`^${escapedPattern}$`);
 }

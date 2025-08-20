@@ -88,17 +88,19 @@ export class SSGGenerator {
         }
       }
 
-      // Generate routes by testing each asset against sitemap patterns
+      // Generate routes by resolving sitemap patterns to actual files
       const generatedRoutes: GeneratedRoute[] = [];
       const processedAssets = new Set<string>();
 
-      // For each asset, find all possible routes that could lead to it
-      for (const asset of allAssets) {
-        const routes = yield* generateRoutesForAsset(asset, sitemap, sourceDir, outputDir, verbose);
-        generatedRoutes.push(...routes);
-        
-        for (const route of routes) {
-          processedAssets.add(route.sourceAsset);
+      // For each pipeline and pattern, discover all possible routes
+      for (const pipeline of sitemap.pipelines) {
+        for (const match of pipeline.matches) {
+          const routes = yield* generateRoutesForPattern(match, sourceDir, outputDir, verbose);
+          generatedRoutes.push(...routes);
+          
+          for (const route of routes) {
+            processedAssets.add(route.sourceAsset);
+          }
         }
       }
 
@@ -152,6 +154,173 @@ function discoverAssets(sourceDir: string): Effect.Effect<string[], Error> {
     },
     catch: (error) => new Error(`Failed to discover assets: ${error}`),
   });
+}
+
+// Generate routes for a sitemap pattern by discovering wildcard values
+function generateRoutesForPattern(
+  match: any,
+  sourceDir: string,
+  outputDir: string,
+  verbose: boolean
+): Effect.Effect<GeneratedRoute[], Error> {
+  return Effect.gen(function* () {
+    const routes: GeneratedRoute[] = [];
+    
+    // Get the pattern and action from the match
+    const urlPattern = match.pattern;
+    const action = match.action;
+    
+    if (action.type !== 'read') {
+      // Only handle read actions for SSG
+      return routes;
+    }
+    
+    const srcPattern = action.src;
+    
+    // If no wildcards, simple static file
+    if (!srcPattern.includes('{') && !srcPattern.includes('*')) {
+      const outputPath = generateStaticOutputPath(urlPattern);
+      
+      yield* copyAssetToOutput(srcPattern, outputPath, sourceDir, outputDir);
+      
+      routes.push({
+        pattern: urlPattern,
+        outputPath,
+        sourceAsset: srcPattern,
+      });
+      
+      if (verbose) {
+        console.log(`  /${urlPattern} → ${outputPath}`);
+      }
+      
+      return routes;
+    }
+    
+    // Handle wildcard patterns
+    if (srcPattern.includes('{1}')) {
+      // Find matching files and extract wildcard values
+      const wildcardValues = yield* discoverWildcardValues(srcPattern, sourceDir);
+      
+      for (const value of wildcardValues) {
+        // Generate the route URL by replacing * with the wildcard value
+        const routeUrl = urlPattern.replace('*', value);
+        const outputPath = generateStaticOutputPath(routeUrl);
+        const actualSrcFile = srcPattern.replace('{1}', value);
+        
+        yield* copyAssetToOutput(actualSrcFile, outputPath, sourceDir, outputDir);
+        
+        routes.push({
+          pattern: routeUrl,
+          outputPath,
+          sourceAsset: actualSrcFile,
+        });
+        
+        if (verbose) {
+          console.log(`  /${routeUrl} → ${outputPath}`);
+        }
+      }
+    }
+    
+    return routes;
+  });
+}
+
+function discoverWildcardValues(
+  srcPattern: string, 
+  sourceDir: string
+): Effect.Effect<string[], Error> {
+  return Effect.gen(function* () {
+    // Convert "data/profile-{1}.json" to glob pattern "data/profile-*.json"
+    const globPattern = srcPattern.replace(/\{1\}/g, '*');
+    
+    // Find all files matching the pattern
+    const matchingFiles = yield* findMatchingFiles(sourceDir, globPattern);
+    
+    // Extract wildcard values
+    const values: string[] = [];
+    const regex = createWildcardRegex(srcPattern);
+    
+    for (const file of matchingFiles) {
+      const match = file.match(regex);
+      if (match && match[1]) {
+        values.push(match[1]);
+      }
+    }
+    
+    return values;
+  });
+}
+
+function findMatchingFiles(
+  sourceDir: string, 
+  globPattern: string
+): Effect.Effect<string[], Error> {
+  return Effect.tryPromise({
+    try: async () => {
+      const files: string[] = [];
+      
+      // Parse the glob pattern to get directory and file pattern
+      const parts = globPattern.split('/');
+      let dirParts: string[] = [];
+      let filePattern = '';
+      
+      for (let i = 0; i < parts.length; i++) {
+        if (parts[i].includes('*')) {
+          filePattern = parts[i];
+          break;
+        }
+        dirParts.push(parts[i]);
+      }
+      
+      const searchDir = path.join(sourceDir, ...dirParts);
+      
+      try {
+        const entries = await fs.promises.readdir(searchDir, { withFileTypes: true });
+        
+        // Convert glob pattern to regex
+        const regexPattern = filePattern.replace(/\*/g, '(.+)');
+        const regex = new RegExp(`^${regexPattern}$`);
+        
+        for (const entry of entries) {
+          if (entry.isFile() && regex.test(entry.name)) {
+            files.push([...dirParts, entry.name].join('/'));
+          }
+        }
+      } catch {
+        // Directory doesn't exist
+      }
+      
+      return files;
+    },
+    catch: (error) => new Error(`Failed to find files matching ${globPattern}: ${error}`),
+  });
+}
+
+function createWildcardRegex(srcPattern: string): RegExp {
+  // Convert "data/profile-{1}.json" to regex that captures wildcard value
+  const escaped = srcPattern
+    .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')  // Escape special chars
+    .replace(/\\\{1\\\}/g, '(.+)');          // Replace {1} with capture group
+  
+  return new RegExp(`^${escaped}$`);
+}
+
+function generateStaticOutputPath(urlPattern: string): string {
+  // Convert URL pattern to static file path
+  if (urlPattern === '' || urlPattern === '/') {
+    return 'index.html';
+  }
+  
+  // Clean URL pattern (remove leading slash)
+  const cleanUrl = urlPattern.startsWith('/') ? urlPattern.slice(1) : urlPattern;
+  
+  // If it already has an extension, use as-is
+  if (path.extname(cleanUrl)) {
+    return cleanUrl;
+  }
+  
+  // For clean URLs, create directory with index.html
+  return path.join(cleanUrl, 'index.html');
 }
 
 // Generate possible routes for a given asset based on sitemap patterns
