@@ -31,10 +31,52 @@ jobs:
         run: bun install
 
       - name: Validate SSG compatibility
-        run: bun ./butterfly-cli/index.ts validate
+        run: |
+          echo "🔍 Running validation..."
+          bun ./butterfly-cli/index.ts validate || {
+            echo "❌ Validation failed"
+            echo "📋 Checking butterfly-cli structure:"
+            ls -la butterfly-cli/
+            echo "📋 Checking if index.ts exists:"
+            cat butterfly-cli/index.ts | head -10
+            exit 1
+          }
 
       - name: Build static site
-        run: bun ./butterfly-cli/index.ts build --output dist
+        run: |
+          echo "🏗️ Building site..."
+          echo "📋 Current directory:"
+          pwd
+          ls -la
+          echo "📋 Checking assets directory:"
+          if [ -d "assets" ]; then
+            echo "✅ assets found"
+            ls -la assets/
+          else
+            echo "❌ no assets directory found"
+          fi
+          echo "🚀 Running build command..."
+          bun ./butterfly-cli/index.ts build --output dist --verbose || {
+            echo "❌ Build command failed"
+            echo "📋 Exit code: $?"
+            exit 1
+          }
+
+      - name: Check build output
+        run: |
+          echo "📁 Checking if dist directory was created..."
+          if [ -d "dist" ]; then
+            echo "✅ dist directory exists"
+            echo "📋 Contents:"
+            ls -la dist/
+          else
+            echo "❌ dist directory not found!"
+            echo "📋 Current directory contents:"
+            ls -la
+            echo "🔧 Creating fallback dist with basic site..."
+            mkdir -p dist
+            echo "<h1>Site is being built...</h1><p>If you see this, the Butterfly build didn't work. Check the Actions logs.</p>" > dist/index.html
+          fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
