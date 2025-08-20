@@ -43,12 +43,14 @@ bun ./butterfly-cli/index.ts serve
 
 ## Customization
 
-The Butterfly CLI is included as **editable TypeScript source code** - not compiled JavaScript. You can:
+The Butterfly CLI is included as **editable TypeScript source code** - giving you complete control:
 
-- Modify routing logic in `butterfly-cli/services/sitemap-router.ts`
-- Customize build process in `butterfly-cli/cli/commands/build.ts`
-- Add new CLI commands in `butterfly-cli/cli/index.ts`
-- Extend sitemap parsing in `butterfly-cli/parsers/sitemap-parser.ts`
+- **Debug & fix issues** - Full access to all CLI source code
+- **Customize routing** - Modify `butterfly-cli/services/sitemap-router.ts`
+- **Extend build process** - Edit `butterfly-cli/cli/commands/build.ts`
+- **Add new features** - Expand `butterfly-cli/cli/index.ts`
+
+**Note:** The CLI currently has some bugs but you have the full source to fix them! This ensures you always own your static site generator.
 
 All changes take effect immediately using Bun's native TypeScript execution.
 

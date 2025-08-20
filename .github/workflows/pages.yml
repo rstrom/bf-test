@@ -56,26 +56,26 @@ jobs:
             echo "❌ no assets directory found"
           fi
           echo "🚀 Running build command..."
-          bun ./butterfly-cli/index.ts build --output dist --verbose || {
-            echo "❌ Build command failed"
-            echo "📋 Exit code: $?"
+          bun ./butterfly-cli/index.ts build --source assets --output dist --verbose 2>&1 || {
+            echo "❌ Build command failed with exit code: $?"
+            echo "📋 Let's check what went wrong..."
+            echo "📂 butterfly-cli contents:"
+            ls -la butterfly-cli/
+            echo "📂 assets contents:"
+            ls -la assets/ 2>/dev/null || echo "No assets directory"
             exit 1
           }
 
-      - name: Check build output
+      - name: Verify build output
         run: |
-          echo "📁 Checking if dist directory was created..."
-          if [ -d "dist" ]; then
-            echo "✅ dist directory exists"
-            echo "📋 Contents:"
+          echo "📁 Verifying build output..."
+          if [ -d "dist" ] && [ "$(ls -A dist)" ]; then
+            echo "✅ Build successful!"
+            echo "📋 Generated files:"
             ls -la dist/
           else
-            echo "❌ dist directory not found!"
-            echo "📋 Current directory contents:"
-            ls -la
-            echo "🔧 Creating fallback dist with basic site..."
-            mkdir -p dist
-            echo "<h1>Site is being built...</h1><p>If you see this, the Butterfly build didn't work. Check the Actions logs.</p>" > dist/index.html
+            echo "❌ Build failed - no output generated"
+            exit 1
           fi
 
       - name: Setup Pages

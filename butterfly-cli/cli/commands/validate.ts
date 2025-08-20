@@ -15,8 +15,10 @@ export const validateCommand = Effect.fn("validateCommand")((config: ValidateCon
     // Check if source directory exists
     const sourceExists = yield* Effect.tryPromise({
       try: () => fs.promises.access(config.source).then(() => true),
-      catch: () => false,
-    });
+      catch: (error) => new Error(`Cannot access source directory: ${error}`),
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(false))
+    );
 
     if (!sourceExists) {
       yield* Console.error(`❌ Source directory not found: ${config.source}`);
@@ -25,7 +27,15 @@ export const validateCommand = Effect.fn("validateCommand")((config: ValidateCon
 
     const result = yield* SSGValidator.validate({
       sourceDir: config.source,
-    });
+    }).pipe(
+      Effect.catchAll((error) => Effect.gen(function* () {
+        yield* Console.error(`🐛 Debug: Validation failed with error: ${error}`);
+        yield* Console.error(`Error type: ${typeof error}`);
+        yield* Console.error(`Error message: ${error?.message || 'No message'}`);
+        yield* Console.error(`Stack trace: ${error?.stack || 'No stack'}`);
+        return yield* Effect.fail(error);
+      }))
+    );
 
     if (result.isSSGCompatible) {
       yield* Console.log("✅ Application is compatible with Static Site Generation");

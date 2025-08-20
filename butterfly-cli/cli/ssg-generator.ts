@@ -39,14 +39,26 @@ export class SSGGenerator {
         catch: (error) => new Error(`Failed to create output directory: ${error}`),
       });
 
-      // Try to load sitemap.xml
-      const sitemapPath = path.join(sourceDir, ".moneta", "sitemap.xml");
-      const maybeSitemapContent = yield* Effect.tryPromise({
-        try: () => fs.promises.readFile(sitemapPath, "utf-8"),
+      // Try to load sitemap.xml (check both sourceDir and root)
+      const sitemapInSource = path.join(sourceDir, ".moneta", "sitemap.xml");
+      const sitemapInRoot = path.join(process.cwd(), ".moneta", "sitemap.xml");
+      
+      let maybeSitemapContent: Option.Option<string>;
+      
+      const contentFromSource = yield* Effect.tryPromise({
+        try: () => fs.promises.readFile(sitemapInSource, "utf-8"),
         catch: () => null,
-      }).pipe(
-        Effect.map(Option.fromNullable)
-      );
+      });
+      
+      if (contentFromSource) {
+        maybeSitemapContent = Option.some(contentFromSource);
+      } else {
+        const contentFromRoot = yield* Effect.tryPromise({
+          try: () => fs.promises.readFile(sitemapInRoot, "utf-8"),
+          catch: () => null,
+        });
+        maybeSitemapContent = Option.fromNullable(contentFromRoot);
+      }
 
       // Parse sitemap or use default
       const sitemap = yield* Option.match(maybeSitemapContent, {

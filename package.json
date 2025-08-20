@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@effect/cli": "^0.50.0",
-    "@effect/platform": "^0.87.0",
+    "@effect/platform": "^0.71.7",
     "@effect/platform-node": "^0.71.0",
-    "@effect/printer": "^0.37.0",
-    "@effect/printer-ansi": "^0.38.0",
+    "@effect/printer": "^0.39.10",
+    "@effect/printer-ansi": "^0.39.10",
     "@effect/typeclass": "^0.28.0",
     "effect": "^3.16.9",
     "fast-xml-parser": "^4.4.1"

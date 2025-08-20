@@ -20,11 +20,26 @@ export class SSGValidator {
       const warnings: string[] = [];
 
       // Check for sitemap.xml and validate its patterns
-      const sitemapPath = path.join(sourceDir, ".moneta", "sitemap.xml");
-      const hasSitemap = yield* Effect.tryPromise({
-        try: () => fs.promises.access(sitemapPath).then(() => true),
-        catch: () => false,
-      });
+      // Try both sourceDir/.moneta/sitemap.xml and ./.moneta/sitemap.xml
+      const sitemapInSource = path.join(sourceDir, ".moneta", "sitemap.xml");
+      const sitemapInRoot = path.join(process.cwd(), ".moneta", "sitemap.xml");
+      
+      const hasSitemapInSource = yield* Effect.tryPromise({
+        try: () => fs.promises.access(sitemapInSource).then(() => true),
+        catch: (error) => new Error(`Cannot access sitemap in source: ${error}`),
+      }).pipe(
+        Effect.catchAll(() => Effect.succeed(false))
+      );
+      
+      const hasSitemapInRoot = yield* Effect.tryPromise({
+        try: () => fs.promises.access(sitemapInRoot).then(() => true),
+        catch: (error) => new Error(`Cannot access sitemap in root: ${error}`),
+      }).pipe(
+        Effect.catchAll(() => Effect.succeed(false))
+      );
+      
+      const sitemapPath = hasSitemapInSource ? sitemapInSource : sitemapInRoot;
+      const hasSitemap = hasSitemapInSource || hasSitemapInRoot;
 
       if (hasSitemap) {
         const sitemapContent = yield* Effect.tryPromise({
@@ -45,10 +60,20 @@ export class SSGValidator {
       }
 
       // Scan all files for dynamic features
-      const allFiles = yield* discoverAllFiles(sourceDir);
+      const allFiles = yield* discoverAllFiles(sourceDir).pipe(
+        Effect.catchAll((error) => {
+          errors.push(`File discovery failed: ${error.message}`);
+          return Effect.succeed([]);
+        })
+      );
       
       for (const file of allFiles) {
-        const issues = yield* validateFile(file, sourceDir);
+        const issues = yield* validateFile(file, sourceDir).pipe(
+          Effect.catchAll((error) => {
+            warnings.push(`Could not validate ${file}: ${error.message}`);
+            return Effect.succeed({ errors: [], warnings: [] });
+          })
+        );
         errors.push(...issues.errors);
         warnings.push(...issues.warnings);
       }
@@ -57,8 +82,10 @@ export class SSGValidator {
       const packageJsonPath = path.join(sourceDir, "package.json");
       const hasPackageJson = yield* Effect.tryPromise({
         try: () => fs.promises.access(packageJsonPath).then(() => true),
-        catch: () => false,
-      });
+        catch: (error) => new Error(`Cannot access package.json: ${error}`),
+      }).pipe(
+        Effect.catchAll(() => Effect.succeed(false))
+      );
 
       if (hasPackageJson) {
         const packageContent = yield* Effect.tryPromise({
@@ -101,7 +128,7 @@ function checkForDynamicPatterns(sitemapContent: string): string[] {
   return errors;
 }
 
-function discoverAllFiles(sourceDir: string): Effect.Effect<string[], never> {
+function discoverAllFiles(sourceDir: string): Effect.Effect<string[], Error> {
   return Effect.tryPromise({
     try: async () => {
       const files: string[] = [];
@@ -126,14 +153,14 @@ function discoverAllFiles(sourceDir: string): Effect.Effect<string[], never> {
       await walkDir(sourceDir);
       return files;
     },
-    catch: (error) => new Error(`Failed to discover files: ${error}`),
-  }).pipe(Effect.orDie);
+    catch: (error) => new Error(`Failed to discover files in ${sourceDir}: ${error}`),
+  });
 }
 
 function validateFile(
   filePath: string,
   sourceDir: string
-): Effect.Effect<{ errors: string[]; warnings: string[] }, never> {
+): Effect.Effect<{ errors: string[]; warnings: string[] }, Error> {
   return Effect.gen(function* () {
     const errors: string[] = [];
     const warnings: string[] = [];
@@ -148,18 +175,24 @@ function validateFile(
     
     const content = yield* Effect.tryPromise({
       try: () => fs.promises.readFile(fullPath, "utf-8"),
-      catch: () => "",
-    }).pipe(Effect.orDie);
+      catch: (error) => {
+        throw new Error(`Failed to read ${filePath}: ${error}`);
+      },
+    });
     
     if (!content) {
       return { errors, warnings };
     }
     
-    // Check for server-side database calls
-    if (content.includes('SELECT ') || 
-        content.includes('INSERT ') || 
-        content.includes('UPDATE ') || 
-        content.includes('DELETE ')) {
+    // Check for server-side database calls (more precise patterns)
+    const sqlPatterns = [
+      /\b(SELECT|INSERT|UPDATE|DELETE)\s+/gi,
+      /\.(query|execute)\s*\(/gi,
+      /sql\s*`/gi,
+    ];
+    
+    const hasSqlQueries = sqlPatterns.some(pattern => pattern.test(content));
+    if (hasSqlQueries && !content.includes('<!-- SQL example -->')) {
       errors.push(`${filePath}: Contains SQL queries - not compatible with SSG`);
     }
     

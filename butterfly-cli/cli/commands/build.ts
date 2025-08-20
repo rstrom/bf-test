@@ -18,8 +18,10 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
     // Check if source directory exists
     const sourceExists = yield* Effect.tryPromise({
       try: () => fs.promises.access(config.source).then(() => true),
-      catch: () => false,
-    });
+      catch: (error) => new Error(`Cannot access source directory: ${error}`),
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(false))
+    );
 
     if (!sourceExists) {
       yield* Console.error(`❌ Source directory not found: ${config.source}`);
@@ -30,8 +32,10 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
     const sitemapPath = path.join(config.source, ".moneta", "sitemap.xml");
     const sitemapExists = yield* Effect.tryPromise({
       try: () => fs.promises.access(sitemapPath).then(() => true),
-      catch: () => false,
-    });
+      catch: (error) => new Error(`Cannot access sitemap: ${error}`),
+    }).pipe(
+      Effect.catchAll(() => Effect.succeed(false))
+    );
 
     if (!sitemapExists) {
       yield* Console.log(`⚠️  No sitemap.xml found at ${sitemapPath}`);
@@ -42,7 +46,14 @@ export const buildCommand = Effect.fn("buildCommand")((config: BuildConfig) =>
       sourceDir: config.source,
       outputDir: config.output,
       verbose: config.verbose,
-    });
+    }).pipe(
+      Effect.catchAll((error) => Effect.gen(function* () {
+        yield* Console.error(`🐛 Debug: Build failed with error: ${error}`);
+        yield* Console.error(`Error type: ${typeof error}`);
+        yield* Console.error(`Error message: ${error?.message || 'No message'}`);
+        return yield* Effect.fail(error);
+      }))
+    );
 
     if (result.success) {
       yield* Console.log("✅ Build completed successfully");
