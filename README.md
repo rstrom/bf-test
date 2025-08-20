@@ -14,15 +14,20 @@ Exported from Moneta Studio.
 
 ## Local Development
 ```bash
-npm install
-npm run serve
+bun install
+bun run serve
+```
+
+Run TypeScript directly:
+```bash
+bun ./butterfly-cli/index.ts serve
 ```
 
 ## Commands
 
-- `npm run build` - Build static site for deployment
-- `npm run validate` - Validate SSG compatibility  
-- `npm run serve` - Serve locally for development
+- `bun run build` - Build static site for deployment
+- `bun run validate` - Validate SSG compatibility  
+- `bun run serve` - Serve locally for development
 
 ## Site Structure
 
@@ -42,7 +47,7 @@ The Butterfly CLI is included as **editable TypeScript source code** - not compi
 - Add new CLI commands in `butterfly-cli/cli/index.ts`
 - Extend sitemap parsing in `butterfly-cli/parsers/sitemap-parser.ts`
 
-All changes take effect immediately using [tsx](https://github.com/privatenumber/tsx) for TypeScript execution.
+All changes take effect immediately using Bun's native TypeScript execution.
 
 ## GitHub Pages Custom Routes
 

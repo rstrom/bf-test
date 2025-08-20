@@ -3,21 +3,23 @@
   "version": "1.0.0",
   "description": "Moneta application: server-rewrite-test",
   "scripts": {
-    "build": "tsx ./butterfly-cli/index.ts build",
-    "serve": "tsx ./butterfly-cli/index.ts serve",
-    "validate": "tsx ./butterfly-cli/index.ts validate",
+    "build": "bun ./butterfly-cli/index.ts build",
+    "serve": "bun ./butterfly-cli/index.ts serve",
+    "validate": "bun ./butterfly-cli/index.ts validate",
     "deploy:workers": "wrangler deploy"
   },
   "dependencies": {
     "@effect/cli": "^0.50.0",
     "@effect/platform": "^0.87.0",
     "@effect/platform-node": "^0.71.0",
+    "@effect/printer": "^0.37.0",
+    "@effect/printer-ansi": "^0.38.0",
+    "@effect/typeclass": "^0.28.0",
     "effect": "^3.16.9",
     "fast-xml-parser": "^4.4.1"
   },
   "devDependencies": {
     "wrangler": "^3.0.0",
-    "tsx": "^4.19.4",
     "@types/node": "^20.14.14"
   }
 }

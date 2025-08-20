@@ -22,19 +22,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: '20'
+          bun-version: latest
 
       - name: Install dependencies
-        run: npm install
+        run: bun install
 
       - name: Validate SSG compatibility
-        run: npx tsx ./butterfly-cli/index.ts validate
+        run: bun ./butterfly-cli/index.ts validate
 
       - name: Build static site
-        run: npx tsx ./butterfly-cli/index.ts build --output dist
+        run: bun ./butterfly-cli/index.ts build --output dist
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
